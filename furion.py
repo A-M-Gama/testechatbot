@@ -22,13 +22,10 @@ load_dotenv()
 GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
 client = genai.Client(api_key=GOOGLE_GEMINI_API_KEY)
 google_search_tool = Tool(google_search=GoogleSearch())
-# model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
-# chat = model.start_chat(history=[])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    # initial_context = "Apresente-se como Furion, um ChatBot da FURIA, focado para os fãs de CS e se apresente de acordo."
     response = client.models.generate_content(
             model="gemini-2.5-flash-preview-04-17",
             config=types.GenerateContentConfig(
@@ -42,11 +39,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(response.text)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /help is issued."""
     await update.message.reply_text("Help!")
 
 async def generate_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Generates an answer using the Gemini model."""
     try:
         # response = chat.send_message(user_message)
         response = client.models.generate_content(
