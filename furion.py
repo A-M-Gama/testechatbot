@@ -1,8 +1,10 @@
 import logging, os
 from dotenv import load_dotenv
-from telegram import ForceReply, Update
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-import google.generativeai as genai
+from google import genai
+from google.genai import types
+from google.genai.types import GoogleSearch, Tool
 
 # Enable logging
 logging.basicConfig(
@@ -18,48 +20,61 @@ load_dotenv()
 
 # Gemini API Configuration
 GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
-genai.configure(api_key=GOOGLE_GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
-chat = model.start_chat(history=[])
+client = genai.Client(api_key=GOOGLE_GEMINI_API_KEY)
+google_search_tool = Tool(google_search=GoogleSearch())
+# model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
+# chat = model.start_chat(history=[])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    initial_context = "Apresente-se como Furion um ChatBot da FURIA, focado para os fãs de CS e se apresente de acordo"
-    context_response = model.generate_content(initial_context)
-    await update.message.reply_html(
-        rf"Fala {user.mention_html()}! {context_response.text}",
-        reply_markup=ForceReply(selective=True),
-    )
+    # initial_context = "Apresente-se como Furion, um ChatBot da FURIA, focado para os fãs de CS e se apresente de acordo."
+    response = client.models.generate_content(
+            model="gemini-2.5-flash-preview-04-17",
+            config=types.GenerateContentConfig(
+                system_instruction="Apresente-se como Furion, um ChatBot da FURIA, focado para os fãs de CS e se apresente de acordo."
+            ),
+            contents=types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=f"Olá, meu nome é {user}")]
+            )
+        )
+    await update.message.reply_text(response.text)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     await update.message.reply_text("Help!")
 
-async def generate_answer(user_message: str) -> str:
+async def generate_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Generates an answer using the Gemini model."""
     try:
-        response = chat.send_message(user_message)
-        return response.text
+        # response = chat.send_message(user_message)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-preview-04-17",
+            config=types.GenerateContentConfig(
+                system_instruction="Seu nome é FURION. Você é um assistente virtual para o time da Fúria. O usuário vai conversar com você sobre a organização, responda de forma amigável, utilizando alguns emojis no final em algumas mensagens. Utilize a wikipedia nas suas pesquisas. Ao final das respostas indique uma das fontes utilizadas.",
+                tools=[google_search_tool]
+            ),
+            contents=types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=update.message.text)]
+            )
+        )
+        await update.message.reply_text(response.text)
     except Exception as e:
         logger.error(f"Error generating answer: {e}")
-        return "Ocorreu um erro ao gerar a resposta."
-
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_text = update.message.text
-    answer = await generate_answer(user_text)
-    await update.message.reply_text(answer)
+        await update.message.reply_text("Ocorreu um erro ao gerar a resposta.")
 
 def main() -> None:
     """Start the bot."""
     application = Application.builder().token(os.getenv("TELEGRAM_BOT_KEY")).build()
 
-    # on different commands - answer in Telegram
+    # commands
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
 
-    # on non command i.e message - get the message on Telegram
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    # on non command
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, generate_answer))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
