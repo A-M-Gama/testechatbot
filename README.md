@@ -68,6 +68,4 @@ Este é um chatbot do Telegram chamado Furion, desenvolvido para fãs da FURIA (
 ## Notas
 
 * Certifique-se de ter configurado corretamente as variáveis de ambiente no arquivo `.env`.
-* A qualidade das respostas pode variar dependendo da informação disponível na Wikipédia e nos resultados da busca do Google.
-* O bot foi configurado para priorizar a Wikipédia como fonte de informação.
-* Este é um projeto básico e pode ser expandido com mais funcionalidades e interações.
+* A qualidade das respostas pode variar dependendo da informação disponível.
