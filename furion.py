@@ -43,7 +43,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def generate_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
-        # response = chat.send_message(user_message)
         response = client.models.generate_content(
             model="gemini-2.5-flash-preview-04-17",
             config=types.GenerateContentConfig(
